@@ -1,0 +1,55 @@
+"""Auto-generated MCP server for {{ title }}
+
+Source: {{ source_type }} spec (v{{ version }})
+{{ description }}
+
+Usage:
+    pip install mcp httpx
+    export {{ env_prefix }}_BASE_URL="{{ base_url }}"
+    export {{ env_prefix }}_API_KEY="your-api-key"  # if needed
+    python {{ server_name }}.py
+"""
+
+import os
+import json
+import httpx
+from mcp.server import Server
+from mcp.server.stdio import stdio_server
+from mcp.types import Tool, TextContent
+
+
+server = Server("{{ server_name }}")
+
+BASE_URL = os.environ.get("{{ env_prefix }}_BASE_URL", "{{ base_url }}")
+API_KEY = os.environ.get("{{ env_prefix }}_API_KEY", "")
+
+
+def _headers() -> dict:
+    h = {}
+    if API_KEY:
+        h["Authorization"] = f"Bearer {API_KEY}"
+    return h
+
+{% for tool in tools %}
+
+@server.tool()
+async def {{ tool.name }}({{ tool.fn_signature }}) -> list[TextContent]:
+    """{{ tool.description }}"""
+    async with httpx.AsyncClient() as client:
+        response = await client.{{ tool.method_lower }}(
+            {{ tool.call_args }}
+        )
+        response.raise_for_status()
+        data = response.json()
+        return [TextContent(type="text", text=json.dumps(data, indent=2, ensure_ascii=False))]
+
+{% endfor %}
+
+async def main():
+    async with stdio_server() as (read_stream, write_stream):
+        await server.run(read_stream, write_stream, server.create_initialization_options())
+
+
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(main())
