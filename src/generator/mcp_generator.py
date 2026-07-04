@@ -26,6 +26,7 @@ def generate_from_openapi(spec: dict, output_path: str | None = None) -> str:
         "description": spec["description"] or f"Auto-generated MCP server for {spec['title']}",
         "base_url": spec["base_url"],
         "env_prefix": _to_env_prefix(spec["title"]),
+        "auth_headers": _prepare_auth_headers(spec),
         "tools": tools_data,
     }
 
@@ -128,6 +129,26 @@ def _to_module_name(title: str) -> str:
 
 def _to_env_prefix(title: str) -> str:
     return "".join(c.upper() if c.isalnum() else "_" for c in title).strip("_") or "API"
+
+
+def _prepare_auth_headers(spec: dict) -> list[dict]:
+    """Extract header API-key schemes for generated server configuration."""
+    schemes = spec.get("security_schemes", {})
+    if not isinstance(schemes, dict):
+        return []
+
+    headers = []
+    for scheme_name, scheme in schemes.items():
+        if not isinstance(scheme, dict):
+            continue
+        if scheme.get("type") != "apiKey" or scheme.get("in") != "header":
+            continue
+        header_name = scheme.get("name")
+        if not isinstance(header_name, str) or not header_name:
+            continue
+        env_name = _to_env_prefix(str(scheme_name))
+        headers.append({"header": header_name, "env": env_name})
+    return headers
 
 
 def _python_type(openapi_type: str) -> str:

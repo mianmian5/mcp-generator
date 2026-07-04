@@ -38,6 +38,8 @@ def parse_openapi(spec_path: str) -> dict:
         "version": version,
         "description": description,
         "base_url": base_url,
+        "security_schemes": spec.get("components", {}).get("securitySchemes", {}),
+        "security": spec.get("security", []),
         "tools": tools,
     }
 
@@ -87,6 +89,7 @@ def _extract_tool(path_str: str, method: str, operation: dict, spec: dict) -> di
         "description": description or name,
         "method": method.upper(),
         "path": path_str,
+        "security": operation.get("security", spec.get("security", [])),
         "path_params": path_params,
         "query_params": query_params,
         "request_body": request_body,

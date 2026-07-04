@@ -4,6 +4,7 @@ import pytest
 from src.parser.openapi_parser import parse_openapi
 
 FIXTURE = "tests/fixtures/petstore.yaml"
+XQUIK_FIXTURE = "tests/fixtures/xquik.yaml"
 
 
 class TestParseOpenAPI:
@@ -48,3 +49,24 @@ class TestParseOpenAPI:
         result = parse_openapi(FIXTURE)
         for tool in result["tools"]:
             assert tool["name"].isidentifier()
+
+    def test_xquik_openapi31_api_key_security(self):
+        result = parse_openapi(XQUIK_FIXTURE)
+
+        assert result["title"] == "Xquik API"
+        assert result["base_url"] == "https://xquik.com"
+        assert result["security_schemes"]["apiKey"]["name"] == "x-api-key"
+        assert result["security"] == [{"apiKey": []}]
+
+    def test_xquik_query_params_and_request_body(self):
+        result = parse_openapi(XQUIK_FIXTURE)
+
+        search = next(t for t in result["tools"] if t["name"] == "searchtweets")
+        assert search["method"] == "GET"
+        assert [p["name"] for p in search["query_params"]] == ["q", "limit"]
+        assert search["query_params"][0]["required"] is True
+
+        webhook = next(t for t in result["tools"] if t["name"] == "createwebhook")
+        assert webhook["method"] == "POST"
+        assert webhook["request_body"]["required"] is True
+        assert webhook["request_body"]["schema"]["required"] == ["url"]
