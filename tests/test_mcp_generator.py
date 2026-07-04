@@ -44,6 +44,21 @@ class TestGenerateFromOpenAPI:
         assert 'Server("testapi")' in code
         assert "TESTAPI_BASE_URL" in code
 
+    def test_generates_header_api_key_env(self):
+        spec = {
+            "title": "Xquik API",
+            "version": "1.0",
+            "description": "",
+            "base_url": "https://xquik.com",
+            "security_schemes": {
+                "apiKey": {"type": "apiKey", "in": "header", "name": "x-api-key"}
+            },
+            "tools": [],
+        }
+        code = generate_from_openapi(spec)
+        assert 'h["x-api-key"] = os.environ["APIKEY"]' in code
+        assert 'export APIKEY="your-api-key"  # sends x-api-key' in code
+
     def test_outputs_to_file(self):
         spec = {
             "title": "FileTest",

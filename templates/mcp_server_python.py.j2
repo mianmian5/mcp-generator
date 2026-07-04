@@ -7,7 +7,8 @@ Usage:
     pip install mcp httpx
     export {{ env_prefix }}_BASE_URL="{{ base_url }}"
     export {{ env_prefix }}_API_KEY="your-api-key"  # if needed
-    python {{ server_name }}.py
+{% for auth in auth_headers %}    export {{ auth.env }}="your-api-key"  # sends {{ auth.header }}
+{% endfor %}    python {{ server_name }}.py
 """
 
 import os
@@ -26,6 +27,9 @@ API_KEY = os.environ.get("{{ env_prefix }}_API_KEY", "")
 
 def _headers() -> dict:
     h = {}
+{% for auth in auth_headers %}    if os.environ.get("{{ auth.env }}"):
+        h["{{ auth.header }}"] = os.environ["{{ auth.env }}"]
+{% endfor %}
     if API_KEY:
         h["Authorization"] = f"Bearer {API_KEY}"
     return h
